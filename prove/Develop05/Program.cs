@@ -1,23 +1,26 @@
 using System;
 
+// I exceeded requirements by adding an extra question if the user quits without saving their goals. 
+// It reminds the user that they didn't save it and gives the option to do it
+
 class Program
 {
-    static void SaveFile(List<Goal> list, int points)
+    static void SaveFile(List<Goal> list)
     {
         Console.Write("What is the filename for your goal file (only .txt)? : ");
         string fileName = Console.ReadLine();
 
         using (StreamWriter outputFile = new StreamWriter(fileName))
         {
-            outputFile.WriteLine(points);
-
             foreach (Goal goal in list)
             {
                 outputFile.WriteLine(goal.StringFormat());
             }
         }
+
         Console.WriteLine("File saved successfully!");
     }
+
     static void Main(string[] args)
     {
         int points = 0;
@@ -28,10 +31,20 @@ class Program
 
         while (user != 6)
         {
-            if (GoalList.Count > 0)
+            points = 0;
+            foreach (Goal goal in GoalList)
             {
-                points = GoalList[0].GetListTotalPoint();
+                if (goal is SimpleGoal simple && simple.getGoalStatus())
+                    points += simple.GetPoints();
+
+                if (goal is ChecklistGoal checklist)
+                {
+                    points += checklist.GetPoints() * checklist.getCurrentlyAccomplished();
+                    if (checklist.getCurrentlyAccomplished() >= checklist.getNumToAccomplish())
+                        points += checklist.GetBonus();
+                }
             }
+
 
             Console.WriteLine($"You have {points} points.\n");
             Console.WriteLine("Menu Options:");
@@ -87,7 +100,7 @@ class Program
                     break;
 
                 case 3:
-                    SaveFile(GoalList, points);
+                    SaveFile(GoalList);
                     isFileSaved = true;
                     break;
 
@@ -97,36 +110,31 @@ class Program
 
                     if (File.Exists(fileNameLoad))
                     {
-                    GoalList.Clear();
-                    string[] lines = File.ReadAllLines(fileNameLoad);
+                        GoalList.Clear();
+                        string[] lines = File.ReadAllLines(fileNameLoad);
 
-                    if (lines.Length == 0)
-                    {
-                    Console.WriteLine("The file is empty.");
-                    break;
-                    }
-
-                    int totalPoints;
-                    if (!int.TryParse(lines[0], out totalPoints))
-                    {
-                    Console.WriteLine("Invalid format for total points.");
-                    break;
-                    }
-
-                    for (int i = 1; i < lines.Length; i++)
-                    {
-                        string line = lines[i];
-                        string[] parts = line.Split(':');
-                    if (parts.Length != 2)
+                        if (lines.Length == 0)
                         {
-                        Console.WriteLine($"Skipping malformed line: {line}");
-                        continue;
+                            Console.WriteLine("The file is empty.");
+                            break;
                         }
 
-                        string goalType = parts[0];
-                        string[] goalDetails = parts[1].Split(',');
 
-                        Goal goal;
+
+                        for (int i = 0; i < lines.Length; i++)
+                        {
+                            string line = lines[i];
+                            string[] parts = line.Split(':');
+                            if (parts.Length != 2)
+                            {
+                                Console.WriteLine($"Skipping malformed line: {line}");
+                                continue;
+                            }
+
+                            string goalType = parts[0];
+                            string[] goalDetails = parts[1].Split(',');
+
+                            Goal goal;
 
                             try
                             {
@@ -138,7 +146,6 @@ class Program
                                 {
                                     bool isCompleted = bool.Parse(goalDetails[3]);
                                     goal = new SimpleGoal(goalType, name, description, tpoints, isCompleted);
-                                    if (isCompleted) goal.SetStatus();
                                 }
                                 else if (goalType == "Eternal Goal")
                                 {
@@ -151,7 +158,6 @@ class Program
                                     int currentlyAccomplished = int.Parse(goalDetails[5]);
 
                                     goal = new ChecklistGoal(goalType, name, description, tpoints, numToAccomplish, currentlyAccomplished, accomplishBonus);
-                                    if (numToAccomplish == currentlyAccomplished) goal.SetStatus();
                                 }
                                 else
                                 {
@@ -159,19 +165,36 @@ class Program
                                     continue;
                                 }
 
-                                goal.SetListTotalPoints(totalPoints);
                                 GoalList.Add(goal);
                             }
                             catch (Exception ex)
                             {
                                 Console.WriteLine($"Failed to parse line {i + 1}: {line}. Error: {ex.Message}");
-                            }}
+                            }
+                        }
 
-                    Console.WriteLine("Goals loaded successfully!");
+                        points = 0;
+                        foreach (Goal goal in GoalList)
+                        {
+                            if (goal is SimpleGoal simple && simple.getGoalStatus())
+                                points += simple.GetPoints();
+
+                            if (goal is ChecklistGoal checklist)
+                            {
+                                points += checklist.GetPoints() * checklist.getCurrentlyAccomplished();
+                                if (checklist.getCurrentlyAccomplished() >= checklist.getNumToAccomplish())
+                                    points += checklist.GetBonus();
+                            }
+
+                            goal.SetListTotalPoints(points);
+                        }
+
+
+                        Console.WriteLine("Goals loaded successfully!");
                     }
-                else
+                    else
                     {
-                    Console.WriteLine("File not found.");
+                        Console.WriteLine("File not found.");
                     }
                     break;
 
@@ -213,7 +236,7 @@ class Program
                     }
                     else if (response == "yes")
                     {
-                        SaveFile(GoalList, points);
+                        SaveFile(GoalList);
                         isFileSaved = true;
                         break;
                     }

@@ -53,11 +53,9 @@ public abstract class Goal
     }
     public abstract void RecordEvent(List<Goal> list);
 
-
-
-
-
-
-
+    public virtual int GetPoints()
+    {
+        return _points;
+    }
 
 }
