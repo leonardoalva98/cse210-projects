@@ -1,4 +1,7 @@
 using System;
+
+// DESCRIPTION OF THE PROGRESS:
+// Both programs, foundation 1 and 2 are completed.
 public class Program
 {
     public static void Main()

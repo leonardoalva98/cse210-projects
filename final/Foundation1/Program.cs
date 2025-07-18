@@ -1,3 +1,7 @@
+
+// DESCRIPTION OF THE PROGRESS:
+// Both programs, foundation 1 and 2 are completed.
+
 public static class Program
 {
     public static void Main()
